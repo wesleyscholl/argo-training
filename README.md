@@ -110,3 +110,178 @@ spec:
         args: ["hello world"] # Command line arguments
 ```
 
+
+### Workflow Variables and How to Use Them
+
+Argo Workflows support variables that can be used in templates. Variables can be used to pass data between templates. Variables can be defined in the workflow spec and can be used in templates. Variables can be of different types, such as string, integer, boolean, object, array, or map.
+
+#### How to access workflow variables in templates
+
+To access workflow variables in templates, use the following syntax:
+
+```yaml
+{{workflow.parameters.<variable-name>}} # Access workflow parameters - From anywhere in the workflow
+
+{{inputs.parameters.<variable-name>}} # Access input parameters - From within a template
+
+{{outputs.parameters.<variable-name>}} # Access output parameters - From within a template
+```
+
+
+Steps and DAG tasks:
+```yaml
+{{steps.<step-name>.outputs.parameters.<variable-name>}} # Access step outputs
+
+{{tasks.<task-name>.outputs.parameters.<variable-name>}} # Access task outputs
+
+{{steps.<step-name>.outputs.artifacts.<artifact-name>}} # Access step artifacts
+
+{{tasks.<task-name>.outputs.artifacts.<artifact-name>}} # Access task artifacts
+
+{{tasks.<task-name>.outputs.result}} # Access task result
+
+{{steps.<step-name>.outputs.result}} # Access step result
+```
+
+
+### Argo Workflows Variables Example
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hello-world- # Generate a name
+spec:
+    entrypoint: main # Entry point of the workflow
+    arguments: # Arguments to pass to the workflow
+        parameters:
+        - name: message # Name of the parameter
+        value: hello world # Value of the parameter
+    templates:
+    - name: main
+        steps:
+        - - name: generate-message
+            template: generate-message
+            arguments: # Arguments to pass to the template
+            parameters:
+            - name: message # Name of the parameter
+                value: "{{workflow.parameters.message}}" # Use workflow parameter
+        - - name: print-message
+            template: print-message
+            arguments: # Arguments to pass to the template
+            parameters:
+            - name: message # Name of the parameter
+                value: "{{steps.generate-message.outputs.parameters.message}}" # Use output of generate-message
+    
+    - name: generate-message
+        inputs: # Input parameters
+        parameters:
+        - name: message # Name of the parameter
+        outputs: # Output parameters
+        parameters:
+        - name: message # Name of the parameter
+            valueFrom:
+            parameter: message # Use input parameter
+    
+    - name: print-message
+        inputs: # Input parameters
+        parameters:
+        - name: message # Name of the parameter
+        container: # Run a container
+        image: alpine:3.6 # Docker image
+        command: [echo] # Command to run
+        args: ["{{inputs.parameters.message}}"] # Use input parameter
+```
+
+### Argo Workflows - Types of Workflow Resources
+
+Argo Workflows support different types of workflow resources, such as:
+
+- **Workflow**: A workflow is a sequence of steps where each step is a container.
+
+- **CronWorkflow**: A cron workflow is a workflow that runs on a schedule.
+
+- **WorkflowTemplate**: A workflow template is a reusable workflow that can be shared across workflows.
+
+- **ClusterWorkflowTemplate**: A cluster workflow template is a reusable workflow that can be shared across workflows at the cluster level.
+
+#### Use Cases
+
+- **Workflow**: Use a workflow to run a sequence of steps or parallel jobs. Can be used for CI/CD pipelines, data processing, machine learning, etc.
+
+- **CronWorkflow**: Use a cron workflow to run a workflow on a schedule. Can be used for periodic tasks, backups, monitoring, etc.
+
+- **WorkflowTemplate**: Use a workflow template to define a reusable workflow. Can be used to share workflows across teams or projects within the same namespace.
+
+- **ClusterWorkflowTemplate**: Use a cluster workflow template to define a reusable workflow at the cluster level. Can be used to share workflows across the entire cluster.
+
+
+### Argo Workflows - Workflow Resource Example
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: workflow-example- # Generate a name
+spec:
+    entrypoint: main # Entry point of the workflow
+    templates:
+    - name: main
+      container: # Run a container
+        image: alpine:3.6 # Docker image
+        command: [echo] # Command to run
+        args: ["This is a Workflow"] # Command line arguments
+```
+
+### Argo Workflows - CronWorkflow Resource Example
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  generateName: cron-workflow-example- # Generate a name
+spec:
+    schedule: "*/1 * * * *" # Schedule to run every minute
+    workflowSpec:
+    entrypoint: main # Entry point of the workflow
+    templates:
+    - name: main
+      container: # Run a container
+        image: alpine:3.6 # Docker image
+        command: [echo] # Command to run
+        args: ["This is a scheduled CronWorkflow"] # Command line arguments
+```
+
+### Argo Workflows - WorkflowTemplate Resource Example
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: workflow-template-example # Name of the workflow template
+spec:
+    entrypoint: main # Entry point of the workflow
+    templates:
+    - name: main
+      container: # Run a container
+        image: alpine:3.6 # Docker image
+        command: [echo] # Command to run
+        args: ["This is a WorkflowTemplate"] # Command line arguments
+```
+
+### Argo Workflows - ClusterWorkflowTemplate Resource Example
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: cluster-workflow-template-example # Name of the cluster workflow template
+spec:
+    entrypoint: main # Entry point of the workflow
+    templates:
+    - name: main
+      container: # Run a container
+        image: alpine:3.6 # Docker image
+        command: [echo] # Command to run
+        args: ["This is a ClusterWorkflowTemplate"] # Command line arguments
+```

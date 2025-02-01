@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow 
+metadata:
+  generateName: artifact-example- # Name of the workflow, generated random suffix
+spec:
+  templates:
+    - name: artifact-example
+      steps:
+        - - name: generate-artifact
+            template: input-data
+        - - name: consume-artifact
+            template: create-message
+            arguments:
+              artifacts:
+                - name: message # Argument artifact name
+                  from: '{{steps.generate-artifact.outputs.artifacts.hello}}' # Artifact reference - from the previous generate-artifact step
+        - - name: print-artifact
+            template: print-message
+            arguments:
+              artifacts:
+                - name: message # Argument artifact name
+                  from: '{{steps.consume-artifact.outputs.artifacts.hello-again}}' # Artifact reference - from the previous consume-artifact step
+    - name: input-data
+      inputs:
+        artifacts:
+          - name: input-file # Input artifact name
+            path: /tmp/file.txt # Input artifact path
+            raw: # Raw data
+              data: | # Data content - Workflow parameter reference
+                "{{workflow.parameters.input-data}}" 
+      outputs:
+        artifacts:
+          - name: hello # Output artifact name
+            path: /tmp/hello_world.txt # Output artifact path
+      container:
+        name: ''
+        image: alpine:latest
+        command:
+          - sh
+          - '-c'
+        args:
+          - cat /tmp/file.txt | tee /tmp/hello_world.txt # Command to execute - cat file content and write to another file
+    - name: create-message
+      inputs:
+        artifacts:
+          - name: message # Input artifact name
+            path: /tmp/message # Input artifact path
+      outputs:
+        artifacts:
+          - name: hello-again # Output artifact name
+            path: /tmp/hello_again.txt # Output artifact path
+      container:
+        name: ''
+        image: alpine:latest
+        command:
+          - sh
+          - '-c'
+        args:
+          - cat /tmp/message | tee /tmp/hello_again.txt # Command to execute - cat file content and write to another file
+    - name: print-message
+      inputs:
+        artifacts:
+          - name: message # Input artifact name
+            path: /tmp/message # Input artifact path
+      container:
+        name: ''
+        image: alpine:latest
+        command:
+          - sh
+          - '-c'
+        args:
+          - cat /tmp/message # Command to execute - cat file content
+  entrypoint: artifact-example # Template entry point of the workflow
+  arguments:
+    parameters:
+      - name: input-data # Parameter name
+        value: '{"prop1":"val1","prop2":"val2","prop3":"val3"}' # JSON string - sample data
